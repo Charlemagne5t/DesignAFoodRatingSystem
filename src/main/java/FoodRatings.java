@@ -1,57 +1,53 @@
 import java.util.*;
 
-public class FoodRatings {
-    Map<String, PriorityQueue<String>> cuisinesPq = new HashMap<>();
-    Map<String, CuisineAndRating> foodsCuisine = new HashMap<>();
-
-
+class FoodRatings {
+    Map<String, Food> nameFoods;
+    Map<String, PriorityQueue<Food>> cuisinesFoods;
     public FoodRatings(String[] foods, String[] cuisines, int[] ratings) {
-        for (int i = 0; i < foods.length; i++) {
-            foodsCuisine.put(foods[i], new CuisineAndRating(cuisines[i], ratings[i]));
-            PriorityQueue<String> pq = cuisinesPq.getOrDefault(cuisines[i],
-                    new PriorityQueue<>(Comparator.comparingInt((String food) -> -foodsCuisine.get(food).rating).thenComparing(Comparator.naturalOrder())));
-            pq.offer(foods[i]);
-            cuisinesPq.put(cuisines[i], pq);
+        nameFoods = new HashMap<>();
+        cuisinesFoods = new HashMap<>();
+        for(int i = 0; i < foods.length; i++) {
+            Food cur = new Food(foods[i], ratings[i], cuisines[i]);
+            nameFoods.put(foods[i], cur);
+            if(!cuisinesFoods.containsKey(cuisines[i])) {
+                cuisinesFoods.put(cuisines[i], new PriorityQueue<>(Comparator
+                                .comparing((Food f) -> -f.rating)
+                                .thenComparing((Food f) -> f.name)
+                        )
+                );
+            }
+            cuisinesFoods.get(cuisines[i]).offer(cur);
+
         }
     }
 
     public void changeRating(String food, int newRating) {
-        CuisineAndRating cr = foodsCuisine.get(food);
-        foodsCuisine.remove(cr);
-        String cuisine = cr.cuisine;
-        foodsCuisine.put(food, new CuisineAndRating(cr.cuisine, newRating));
-        cuisinesPq.get(cuisine).remove(food);
-        cuisinesPq.get(cuisine).add(food);
+        Food f  = nameFoods.get(food);
+        f.removed = true;
+        String cuisine = f.cuisine;
+        nameFoods.remove(food);
+        Food newFood = new Food(food, newRating, cuisine);
+        nameFoods.put(food, newFood);
+        cuisinesFoods.get(cuisine).offer(newFood);
     }
 
     public String highestRated(String cuisine) {
-        return cuisinesPq.get(cuisine).peek();
+        PriorityQueue<Food> pq = cuisinesFoods.get(cuisine);
+        while(!pq.isEmpty() && pq.peek().removed){
+            pq.poll();
+        }
+        System.out.println(pq.peek().name + " " + pq.peek().rating);
+        return pq.peek().name;
     }
 }
-class CuisineAndRating{
-    String cuisine;
+class Food {
+    String name;
     int rating;
-
-    public CuisineAndRating(String cuisine, int rating) {
+    String cuisine;
+    boolean removed = false;
+    Food(String name, int rating, String cuisine) {
+        this.name = name;
+        this.rating  = rating;
         this.cuisine = cuisine;
-        this.rating = rating;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        CuisineAndRating that = (CuisineAndRating) o;
-
-        if (rating != that.rating) return false;
-        return Objects.equals(cuisine, that.cuisine);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = cuisine != null ? cuisine.hashCode() : 0;
-        result = 31 * result + rating;
-        return result;
     }
 }
